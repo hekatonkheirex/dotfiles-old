@@ -23,11 +23,6 @@ QtObject {
   readonly property bool nothingEvolution: nothingDesign && Settings.nothingVariant === "evolution"
   readonly property bool ghostTheme: Settings.themeStyle === "ghost"
   readonly property bool dwmTheme: Settings.themeStyle === "dwm"
-  // elena rides the Material control path (material3Theme stays true); this
-  // flag gates its palette default and the bar, which becomes the top-edge
-  // row of workspace blocks (barWidth = tagStripHeight, form full, top).
-  readonly property bool elenaTheme: Settings.themeStyle === "elena"
-  readonly property int tagStripHeight: 8
   readonly property bool liquidGlassTheme: Settings.themeStyle === "liquid-glass"
   readonly property bool material3Theme: !nothingDesign && !ghostTheme && !liquidGlassTheme && !dwmTheme
 
@@ -45,10 +40,10 @@ QtObject {
   // Live-adjustable via the Appearance settings tab's Bar Size slider.
   // Ghost uses the same selected thickness as other styles; its geometry
   // stays square rather than capping the rail at 34px.
-  readonly property int barWidth: elenaTheme ? tagStripHeight : Settings.barSize
+  readonly property int barWidth: Settings.barSize
   readonly property int widgetSize: barWidth
   // Geometry of the selected bar form (full, fit, dock, notch, pill).
-  readonly property var barFormMetrics: BarForm.metrics(BarForm.resolve(Settings.barForm, dwmTheme || elenaTheme), {
+  readonly property var barFormMetrics: BarForm.metrics(BarForm.resolve(Settings.barForm, dwmTheme), {
     barWidth: barWidth, spacingSmall: spacingSmall, spacingLarge: spacingLarge
   })
   // Live-adjustable via the Appearance settings tab (single density scale);

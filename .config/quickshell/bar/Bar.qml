@@ -235,12 +235,6 @@ PanelWindow {
   // IPC entry point: open (or toggle closed) a bar popup by name, anchored to
   // its indicator exactly as a click would. Returns false for unknown names.
   function togglePopupByName(name) {
-    // The sidebar has no anchor widget and only exists under elena.
-    if (name === "sidebar") {
-      if (!Config.elenaTheme) return false
-      openPopup = openPopup === "sidebar" ? "" : "sidebar"
-      return true
-    }
     var widgets = {
       audio: audioIndicator, brightness: brightnessIndicator, media: mediaIndicator,
       weather: weatherIndicator, battery: batteryIndicator, notification: notifIndicator,
@@ -291,10 +285,7 @@ PanelWindow {
   readonly property int horizontalPillInset: 6
   readonly property int verticalPillInset: 6
   readonly property int verticalWindowEdgeMargin: 0
-  // elena: the surface is exactly the 8 px block row (barWidth is forced to
-  // tagStripHeight in Config); no panel padding below it.
-  readonly property int normalPanelExtent: Config.elenaTheme ? Config.barWidth
-    : root.continuousBar
+  readonly property int normalPanelExtent: root.continuousBar
     ? (Config.ghostTheme ? Config.barWidth : Config.barWidth + Config.spacingLarge) + root.edgeGap
     : (root.horizontal ? Config.barWidth : root.verticalPillPanelWidth)
   readonly property int verticalClockHeight: Math.max(Config.clockVerticalHeight, root.verticalPillLength)
@@ -396,7 +387,6 @@ PanelWindow {
       // Liquid Glass keeps the menu-bar layer visually open; material is
       // reserved for transient/interactive states below it.
       color: root.continuousBar
-        && !Config.elenaTheme
         && !root.ghostCentralGap
         && (!Config.liquidGlassTheme || Colors.liquidGlassOpaque)
         ? root.barPanelColor
@@ -548,22 +538,8 @@ PanelWindow {
         }
       }
 
-      // elena: the whole bar is the workspace block row. Everything else is
-      // hidden with opacity/enabled (not visible: wsIndicator's refreshers are
-      // gated on root.visible) until the sidebar phase. The mask below is
-      // barBg, so clicks reach only these blocks.
-      TagStripBlocks {
-        anchors.fill: parent
-        visible: Config.elenaTheme
-        z: 10
-        workspaces: wsIndicator.visibleWorkspaces
-        onActivated: function(idx) { wsIndicator.focusWorkspace(idx) }
-      }
-
       GridLayout {
         id: layout
-        opacity: Config.elenaTheme ? 0 : 1
-        enabled: !Config.elenaTheme
         layer.enabled: root.glassForegroundShadowEnabled
         layer.effect: glassForegroundShadow
         flow: root.horizontal ? GridLayout.LeftToRight : GridLayout.TopToBottom
@@ -644,7 +620,7 @@ PanelWindow {
             : 0
           Layout.fillHeight: root.horizontal
           Layout.alignment: root.horizontal ? Qt.AlignVCenter : Qt.AlignTop
-          visible: Settings.ccShowWorkspaces || Config.elenaTheme
+          visible: Settings.ccShowWorkspaces
 
           PillSurface {
             horizontal: root.horizontal
@@ -1242,8 +1218,6 @@ PanelWindow {
       // cannot pull middle widgets away from the screen midpoint.
       GridLayout {
         id: middleLayout
-        opacity: Config.elenaTheme ? 0 : 1
-        enabled: !Config.elenaTheme
         layer.enabled: root.glassForegroundShadowEnabled
         layer.effect: glassForegroundShadow
         flow: root.horizontal ? GridLayout.LeftToRight : GridLayout.TopToBottom
@@ -1267,8 +1241,6 @@ PanelWindow {
 
       Item {
         id: clockWrapper
-        opacity: Config.elenaTheme ? 0 : 1
-        enabled: !Config.elenaTheme
         layer.enabled: root.glassForegroundShadowEnabled
         layer.effect: glassForegroundShadow
         // The clock stays outside both layouts to preserve its popup anchor,

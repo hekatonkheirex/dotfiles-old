@@ -17,11 +17,10 @@ QtObject {
   property bool observedMicMuted: false
   property bool indicatorActive: false
   property bool popupActive: false
-  property bool sidebarActive: false
   property bool watcherEnabled: true
 
-  readonly property bool sinkActive: indicatorActive || popupActive || sidebarActive
-  readonly property bool micActive: popupActive || sidebarActive
+  readonly property bool sinkActive: indicatorActive || popupActive
+  readonly property bool micActive: popupActive
 
   function pollSink() {
     if (!root.sinkActive || sinkControl.running || sinkVolumePending || sinkMutePending || sinkQuery.running) return

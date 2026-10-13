@@ -9,7 +9,6 @@ import Quickshell.Services.UPower
 import Quickshell.Io
 import "config"
 import "config/BarForm.js" as BarForm
-import "config/DockModel.js" as DockModel
 import "bar"
 import "ui" as Ui
 
@@ -233,68 +232,6 @@ ShellRoot {
     return bar.verticalPillPanelWidth + bar.edgeGap + Config.spacingMedium
   }
 
-  // Anchors the launcher exactly as the launcher() IPC call does.
-  function anchorLauncher() {
-    if (bar.horizontal) {
-      bar.popupAnchorX = bar.getLauncherX()
-    } else {
-      bar.popupAnchorY = 0
-    }
-  }
-
-  // Opens the launcher with `query` already typed. Shared by the sidebar search
-  // field and the sidebarSearch IPC hook. Re-opening while the launcher is
-  // already visible must re-run its on-show reset, so close it first.
-  // `@` queries skip the launcher: wallpaper mode dismisses it from inside its
-  // own show handler, so open the filmstrip with the same query the launcher's
-  // onWallpaperModeChanged would pass to onWallpapersRequested.
-  function openLauncherWith(query) {
-    if (lockScreen.locked) return
-    if (query.trim().startsWith("@")) {
-      bar.openPopup = ""
-      shell.wallpaperFilmstripQuery = query.trim().substring(1).trim()
-      shell.wallpaperFilmstripOpen = true
-      return
-    }
-    anchorLauncher()
-    if (bar.openPopup === "launcher") bar.openPopup = ""
-    launcherPopup.initialQuery = query
-    bar.openPopup = "launcher"
-  }
-
-  // niri's socket path changes per session; pick the newest like the other
-  // niri helpers in this config.
-  function niriAction(args) {
-    Quickshell.execDetached(["sh", "-c",
-      "NIRI_SOCKET=$(ls -t /run/user/$(id -u)/niri.*.sock 2>/dev/null | head -1) niri msg action " + args])
-  }
-
-  function dockLaunch(appId) {
-    var entry = DesktopEntries.heuristicLookup(appId)
-    if (entry) entry.execute()
-    else Quickshell.execDetached([appId])
-  }
-
-  function dockActivate(appId) {
-    var windows = WindowService.windows
-    var own = DockModel.dockItems([appId], windows)[0]
-    if (!own || own.count === 0) { shell.dockLaunch(appId); return }
-    var id = own.focused
-      ? DockModel.nextWindow(windows, appId, WindowService.focusedWindowId, 1)
-      : DockModel.relevantWindow(windows, appId)
-    if (id !== null) shell.niriAction("focus-window --id " + Math.floor(id))
-  }
-
-  function dockClose(appId) {
-    var id = DockModel.relevantWindow(WindowService.windows, appId)
-    if (id !== null) shell.niriAction("close-window --id " + Math.floor(id))
-  }
-
-  function dockCycle(appId, direction) {
-    var id = DockModel.nextWindow(WindowService.windows, appId, WindowService.focusedWindowId, direction)
-    if (id !== null) shell.niriAction("focus-window --id " + Math.floor(id))
-  }
-
   function popupMarginLeft(w, screenW) {
     if (bar.horizontal) {
       // Float popups off the screen edge instead of clamping flush to it.
@@ -352,7 +289,11 @@ ShellRoot {
     target: "shell"
 
     function launcher() {
-      shell.anchorLauncher()
+      if (bar.horizontal) {
+        bar.popupAnchorX = bar.getLauncherX()
+      } else {
+        bar.popupAnchorY = 0
+      }
       bar.openPopup = bar.openPopup === "launcher" ? "" : "launcher"
     }
 
@@ -444,35 +385,6 @@ ShellRoot {
       return launcherPopup.dmenu ? "strip" : "list"
     }
 
-    // Dev/testing: submit the sidebar search with `text` (same path as Enter).
-    // False outside the elena style.
-    function sidebarSearch(text: string): bool {
-      if (!Config.elenaTheme || lockScreen.locked) return false
-      shell.openLauncherWith(text)
-      return true
-    }
-
-    // Dev/testing: dock state as JSON (items, visibility inputs).
-    function dockState(): string {
-      return JSON.stringify({
-        revealed: dock.revealed,
-        workspaceEmpty: WindowService.workspaceEmpty,
-        windows: WindowService.windows.length,
-        items: dock.items
-      })
-    }
-
-    // Dev/testing: force the dock shown (true) or back to automatic (false).
-    function dockReveal(on: bool): bool {
-      dock.forceShown = on
-      return dock.revealed
-    }
-
-    // Dev/testing: the launcher's current search text.
-    function launcherQuery(): string {
-      return launcherPopup.searchText
-    }
-
     function currentPopup(): string {
       return bar.openPopup
     }
@@ -559,7 +471,7 @@ ShellRoot {
   NotificationToast {
     id: notificationToast
     notificationServer: notifServer
-    barPosition: Config.elenaTheme ? "top" : shell.barPosition
+    barPosition: shell.barPosition
     screen: bar.screen
   }
 
@@ -592,8 +504,7 @@ ShellRoot {
 
   Bar {
     id: bar
-    // elena is a top-edge block row; the saved position stays untouched.
-    barPosition: Config.elenaTheme ? "top" : shell.barPosition
+    barPosition: shell.barPosition
     notificationCount: notificationPopup.count
     sessionLocked: lockScreen.locked || lockScreen.compositorLocked
     // Wait for persisted settings before exposing the panel so the first
@@ -654,31 +565,6 @@ ShellRoot {
     margins.left: shell.popupMarginLeft(implicitWidth, bar.screen.width)
     anchors.top: true
     margins.top: shell.popupMarginTop(implicitHeight, bar.screen.height)
-  }
-
-  Sidebar {
-    visible: bar.openPopup === "sidebar" && Config.elenaTheme && !lockScreen.locked
-    screen: bar.screen
-    onDismissed: bar.openPopup = ""
-    onSearchSubmitted: function(text) { shell.openLauncherWith(text) }
-  }
-
-  Dock {
-    id: dock
-    visible: Config.elenaTheme && bar.visible && !lockScreen.locked
-    screen: bar.screen
-    items: DockModel.dockItems(DockModel.normalizePinned(Settings.dockPinned), WindowService.windows)
-    workspaceEmpty: WindowService.workspaceEmpty
-    onItemActivated: function(appId) { shell.dockActivate(appId) }
-    onItemClosed: function(appId) { shell.dockClose(appId) }
-    onItemCycled: function(appId, direction) { shell.dockCycle(appId, direction) }
-  }
-
-  Connections {
-    target: Config
-    function onElenaThemeChanged() {
-      if (!Config.elenaTheme && bar.openPopup === "sidebar") bar.openPopup = ""
-    }
   }
 
   LlmUsagePopup {

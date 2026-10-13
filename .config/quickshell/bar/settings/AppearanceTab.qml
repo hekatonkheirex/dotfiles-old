@@ -31,8 +31,8 @@ Flickable {
   // Stacked icon + label choices keep breathing room at the global type scale.
   readonly property int optionButtonHeight: material3Theme
     ? Math.max(Config.controlHitSize, Config.typeLabelMediumLineHeight + (Config.materialCompact ? 16 : 24)) : 48
-  readonly property int uiStyleColumns: width < 260 ? 1 : (width < 720 ? 2 : 7)
-  readonly property int uiStyleRows: Math.ceil(7 / uiStyleColumns)
+  readonly property int uiStyleColumns: width < 260 ? 1 : (width < 720 ? 2 : 6)
+  readonly property int uiStyleRows: Math.ceil(6 / uiStyleColumns)
   // Keep the selector model independent of palette roles: a new JS array
   // recreates every button, including the one handling the style change.
   readonly property var styleChoices: [
@@ -41,8 +41,7 @@ Flickable {
     { value: "nothing", variant: "evolution", icon: "layers", label: "Evolution" },
     { value: "ghost", variant: "", icon: "network_intelligence", label: "Ghost" },
     { value: "liquid-glass", variant: "", icon: "blur_on", label: "Liquid" },
-    { value: "dwm", variant: "", icon: "terminal", label: "dwm" },
-    { value: "elena", variant: "", icon: "palette", label: "Elena" }
+    { value: "dwm", variant: "", icon: "terminal", label: "dwm" }
   ]
   readonly property var selectedStylePreview: {
     var value = Settings.themeStyle
@@ -86,65 +85,25 @@ Flickable {
 
   property string previousStyle: ""
   property string previousNothingVariant: ""
-  // Palette the user had before elena applied its own; empty when elena did
-  // not change it.
-  property string paletteBeforeElenaSource: ""
-  property string paletteBeforeElenaPalette: ""
-  property string paletteBeforeElenaVariant: ""
-
-  // Call after themeStyle has left elena. Puts the user's palette back unless
-  // they picked another one while in elena. Returns true when it changed.
-  function leaveElena() {
-    if (paletteBeforeElenaPalette === "") return false
-    var restore = Settings.colorSource === "fixed" && Settings.colorPalette === "elenapan"
-    if (restore) {
-      Settings.colorSource = paletteBeforeElenaSource
-      Settings.colorPalette = paletteBeforeElenaPalette
-      Settings.colorVariant = paletteBeforeElenaVariant
-    }
-    paletteBeforeElenaSource = ""
-    paletteBeforeElenaPalette = ""
-    paletteBeforeElenaVariant = ""
-    return restore
-  }
 
   function selectStyle(style, variant) {
     if (Settings.themeStyle === style
         && (style !== "nothing" || Settings.nothingVariant === variant)) return
-    var wasElena = Settings.themeStyle === "elena"
     previousStyle = Settings.themeStyle
     previousNothingVariant = Settings.nothingVariant
     Settings.themeStyle = style
     if (style === "nothing") Settings.nothingVariant = variant
-    var paletteChanged = false
-    if (wasElena && style !== "elena") {
-      paletteChanged = appearanceTab.leaveElena()
-    } else if (style === "elena" && Settings.colorPalette !== "elenapan") {
-      // elena ships its own fixed palette. The palette controls can still
-      // switch it to Live (wallpaper) afterwards.
-      paletteBeforeElenaSource = Settings.colorSource
-      paletteBeforeElenaPalette = Settings.colorPalette
-      paletteBeforeElenaVariant = Settings.colorVariant
-      Settings.colorSource = "fixed"
-      Settings.colorPalette = "elenapan"
-      Settings.colorVariant = "auto"
-      paletteChanged = true
-    }
     Settings.save()
-    if (paletteChanged) appearanceTab.requestPaletteSync()
   }
 
   function revertStyle() {
     if (previousStyle === "") return
     var style = previousStyle
     var variant = previousNothingVariant
-    var wasElena = Settings.themeStyle === "elena"
     previousStyle = ""
     Settings.themeStyle = style
     Settings.nothingVariant = variant
-    var paletteChanged = wasElena && style !== "elena" && appearanceTab.leaveElena()
     Settings.save()
-    if (paletteChanged) appearanceTab.requestPaletteSync()
   }
   property string themeStatus: ""
   property bool resetConfirm: false
@@ -524,7 +483,7 @@ Flickable {
 
           GridLayout {
             Layout.fillWidth: true
-            columns: appearanceTab.uiStyleColumns === 7 ? 2 : 1
+            columns: appearanceTab.uiStyleColumns === 6 ? 2 : 1
             columnSpacing: Config.spacingMedium
             rowSpacing: Config.spacingSmall
 
@@ -539,9 +498,7 @@ Flickable {
                       ? "Translucent functional surfaces, clear controls, and adaptive contrast"
                       : (Settings.themeStyle === "dwm"
                         ? "Flat tag bar, plain status text, and a one-line dmenu strip in wallpaper colours"
-                        : (Settings.themeStyle === "elena"
-                          ? "Navy cards, pink, purple and cyan accents, and a colour-block workspace strip"
-                          : "Rounded surfaces, tonal elevation, and expressive motion")))))
+                        : "Rounded surfaces, tonal elevation, and expressive motion"))))
               color: Colors.fgSurfaceVariant
               font.family: Config.fontFamily
               font.pixelSize: Config.typeBodyMediumSize
@@ -554,7 +511,7 @@ Flickable {
             }
 
             ActionButton {
-              Layout.alignment: appearanceTab.uiStyleColumns === 7 ? Qt.AlignRight : Qt.AlignLeft
+              Layout.alignment: appearanceTab.uiStyleColumns === 6 ? Qt.AlignRight : Qt.AlignLeft
               Layout.preferredWidth: Math.min(160, uiStyleColumn.width)
               Layout.preferredHeight: 40
               visible: appearanceTab.previousStyle !== ""
@@ -2153,6 +2110,5 @@ Flickable {
       }
     }
 
-    DockSection { Layout.fillWidth: true }
   }
 }

@@ -7,10 +7,8 @@ cd "$script_dir/.."
 qmllint shell.qml \
   config/*.qml \
   bar/*.qml \
-  bar/dock/*.qml \
   bar/settings/*.qml \
   bar/primitives/*.qml \
-  bar/sidebar/*.qml \
   bar/themes/material3/*.qml \
   bar/themes/nothing/*.qml \
   bar/themes/ghost/*.qml

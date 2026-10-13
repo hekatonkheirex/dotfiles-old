@@ -189,9 +189,6 @@ PanelWindow {
   ListModel { id: clipboardModel }
 
   property string searchText: ""
-  // Set by the sidebar search field (shell.qml) before the launcher opens; applied
-  // once after the on-show reset below, then cleared.
-  property string initialQuery: ""
   property int selectedIndex: 0
   property bool voiceRecording: false
   property bool voiceTranscribing: false
@@ -776,15 +773,6 @@ PanelWindow {
           appendFilteredResult(appModel.get(i), "app")
         }
       }
-      if (root.initialQuery !== "") {
-        var q = root.initialQuery
-        root.initialQuery = ""
-        searchInputControl.text = q
-        root.searchText = q
-        root.selectedIndex = 0
-        root.filterApps()
-        searchInputControl.input.cursorPosition = q.length
-      }
       if (Config.reducedMotion || root.dmenu) {
         entryAnimation.stop()
         materialEntryAnimation.stop()
@@ -806,8 +794,6 @@ PanelWindow {
       root.voiceRecording = false
       root.voiceTranscribing = false
     } else {
-      // A query set while the launcher stayed hidden must not leak into the next open.
-      root.initialQuery = ""
       resultMenu.close()
       if (root.voiceRecording) {
         root.voiceRecording = false
